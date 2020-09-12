@@ -289,6 +289,10 @@ namespace Blockcore.Features.RPC
                         ipblock.Contains(ip, this.logger);                        
                     }
                 }
+                else
+                {
+                    this.logger.LogWarning("No AllowIP set!");
+                }
                 return false;
             }
 

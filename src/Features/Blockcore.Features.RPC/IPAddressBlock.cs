@@ -85,6 +85,9 @@ namespace Blockcore.Features.RPC
             if (address.IsIPv4MappedToIPv6)
                 address = address.MapToIPv4();
 
+            if (logger != null)
+                logger.LogWarning($"Address = {address}");
+
             if (this.BlockAddress.AddressFamily != address.AddressFamily)
             {
                 if (logger != null)
