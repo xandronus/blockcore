@@ -282,6 +282,13 @@ namespace Blockcore.Features.RPC
             if (!this.authorization.IsAuthorized(ip))
             {
                 this.logger.LogWarning("IP '{0}' not authorised.", ip);
+                if (this.authorization?.AllowIp != null)
+                {
+                    foreach (var ipblock in this.authorization.AllowIp)
+                    {
+                        ipblock.Contains(ip, this.logger);                        
+                    }
+                }
                 return false;
             }
 

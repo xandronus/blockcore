@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using Microsoft.Extensions.Logging;
 
 namespace Blockcore.Features.RPC
 {
@@ -79,24 +80,36 @@ namespace Blockcore.Features.RPC
         /// 10.10.1.32–10.10.1.63, when converted to binary, all have the same 27 first digits and will be blocked
         /// if 10.10.1.32 / 27 is blocked.
         /// </remarks>
-        public bool Contains(IPAddress address)
+        public bool Contains(IPAddress address, ILogger logger = null)
         {
             if (address.IsIPv4MappedToIPv6)
                 address = address.MapToIPv4();
 
             if (this.BlockAddress.AddressFamily != address.AddressFamily)
+            {
+                if (logger != null)
+                    logger.LogWarning($"AddressFamilyMismatch: {this.BlockAddress.AddressFamily} != {address.AddressFamily}");
                 return false;
+            }
 
             byte[] blockAddrBytes = this.BlockAddress.GetAddressBytes();
             if (this.CIDRSuffix == (blockAddrBytes.Length * 8))
+            {
+                if (logger != null)
+                    logger.LogWarning($"CIDRSuffix match: {this.CIDRSuffix} == blockAddrBytes - comparison is via IPAddress");
                 return this.BlockAddress.Equals(address);
+            }
 
             // Determine the number of initial bytes in the block address that should match the ip address.
             int maskBytesLength = this.CIDRSuffix / 8;
             byte[] addressBytes = address.GetAddressBytes();
             for (int i = 0; i < maskBytesLength; i++)
                 if (addressBytes[i] != blockAddrBytes[i])
+                {
+                    if (logger != null)
+                        logger.LogWarning($"Masked Byte comparison failed");
                     return false;
+                }
 
             // Deal with CIDR suffixes that are mot a multiple of 8.
             if ((this.CIDRSuffix % 8) != 0)
@@ -106,7 +119,11 @@ namespace Blockcore.Features.RPC
                 byte byteMask = (byte)~(0xff >> (this.CIDRSuffix % 8));
 
                 if (((addressBytes[maskBytesLength] ^ blockAddrBytes[maskBytesLength]) & byteMask) != 0)
+                {
+                    if (logger != null)
+                        logger.LogWarning("SIDR suffix not multiple of 8 check failed");
                     return false;
+                }
             }
 
             // We don't care about mismatches in the rest of the bytes.
